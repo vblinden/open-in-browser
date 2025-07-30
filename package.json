@@ -1,0 +1,136 @@
+{
+  "name": "git-open-file-in-browser",
+  "displayName": "Git: Open in Browser",
+  "description": "Open files or selected lines from your Git repository directly in the browser. Supports GitHub, GitLab, Bitbucket, Azure DevOps, and custom Git providers.",
+  "version": "1.0.0",
+  "icon": "images/logo.png",
+  "publisher": "vblinden",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vblinden/open-in-browser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vblinden/open-in-browser/issues"
+  },
+  "homepage": "https://github.com/vblinden/open-in-browser#readme",
+  "keywords": [
+    "git",
+    "github",
+    "gitlab",
+    "bitbucket",
+    "browser",
+    "open",
+    "repository",
+    "source control",
+    "vcs"
+  ],
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "categories": [
+    "Other",
+    "SCM Providers"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "open-in-browser.openFile",
+        "title": "Git: Open In Browser",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "open-in-browser.openSelection",
+        "title": "Git: Open Selection In Browser",
+        "icon": "$(globe)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "open-in-browser.openFile",
+          "when": "editorTextFocus",
+          "group": "git"
+        },
+        {
+          "command": "open-in-browser.openSelection",
+          "when": "editorHasSelection",
+          "group": "git"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "open-in-browser.openFile",
+          "when": "resourceScheme == file",
+          "group": "git"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Open in Browser",
+      "properties": {
+        "openInBrowser.customProviders": {
+          "type": "array",
+          "default": [],
+          "description": "Custom Git providers configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Provider name"
+              },
+              "domain": {
+                "type": "string",
+                "description": "Git domain (e.g., github.com, gitlab.com)"
+              },
+              "urlTemplate": {
+                "type": "string",
+                "description": "URL template with placeholders: {domain}, {owner}, {repo}, {branch}, {filePath}, {startLine}, {endLine}"
+              }
+            },
+            "required": ["name", "domain", "urlTemplate"]
+          }
+        },
+        "openInBrowser.defaultBranch": {
+          "type": "string",
+          "default": "main",
+          "description": "Default branch name to use when current branch detection fails"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.102.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "esbuild": "^0.25.3",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.3",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
