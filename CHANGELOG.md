@@ -2,6 +2,11 @@
 
 All notable changes to the "Open in Browser" extension will be documented in this file.
 
+## [2.1.0] - 2025-08-08
+
+### Changed
+- `Git: Open In Browser` now opens the file without adding a line anchor. To include line numbers or ranges, use `Git: Open Selection In Browser`.
+
 ## [2.0.0] - 2025-08-08
 
 ### Added

@@ -15,31 +15,36 @@ interface GitRemoteInfo {
 }
 
 interface GitProvider {
-	name: string;
-	domain: string;
-	urlTemplate: string;
+    name: string;
+    domain: string;
+    urlTemplate: string; // template including line numbers
+    urlTemplateNoLines?: string; // optional template without line numbers
 }
 
 const DEFAULT_PROVIDERS: GitProvider[] = [
 	{
 		name: 'GitHub',
 		domain: 'github.com',
-		urlTemplate: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}-L{endLine}'
+			urlTemplate: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}-L{endLine}',
+			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}'
 	},
 	{
 		name: 'GitLab',
 		domain: 'gitlab.com',
-		urlTemplate: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}'
+			urlTemplate: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}',
+			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}'
 	},
 	{
 		name: 'Bitbucket',
 		domain: 'bitbucket.org',
-		urlTemplate: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}#lines-{startLine}:{endLine}'
+			urlTemplate: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}#lines-{startLine}:{endLine}',
+			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}'
 	},
 	{
 		name: 'Azure DevOps',
 		domain: 'dev.azure.com',
-		urlTemplate: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}&line={startLine}&lineEnd={endLine}&lineStartColumn=1&lineEndColumn=1'
+			urlTemplate: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}&line={startLine}&lineEnd={endLine}&lineStartColumn=1&lineEndColumn=1',
+			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}'
 	}
 ];
 
@@ -54,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register command to open file in browser
 	const openFileDisposable = vscode.commands.registerCommand('open-in-browser.openFile', async (uri?: vscode.Uri) => {
 		try {
-			await openInBrowser(uri);
+			await openInBrowser(uri, false);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to open in browser: ${error}`);
 		}
@@ -100,9 +105,9 @@ async function openInBrowser(uri?: vscode.Uri, useSelection: boolean = false): P
 	// Get relative file path
 	const relativePath = path.relative(workspaceFolder.uri.fsPath, fileUri.fsPath);
 
-	// Get line numbers if selection is requested
-	let startLine = 1;
-	let endLine = 1;
+	// Determine line numbers only when using selection; otherwise omit
+	let startLine: number | null = null;
+	let endLine: number | null = null;
 
 	if (useSelection && activeEditor && activeEditor.document.uri.toString() === fileUri.toString()) {
 		const selection = activeEditor.selection;
@@ -195,7 +200,13 @@ function getDefaultBranch(): string {
 	return config.get<string>('defaultBranch', 'main');
 }
 
-function buildUrl(gitInfo: GitRemoteInfo, filePath: string, branch: string, startLine: number, endLine: number): string {
+function buildUrl(
+    gitInfo: GitRemoteInfo,
+    filePath: string,
+    branch: string,
+    startLine: number | null,
+    endLine: number | null
+): string {
 	const providers = getAllProviders();
 
 	// Find matching provider
@@ -205,24 +216,36 @@ function buildUrl(gitInfo: GitRemoteInfo, filePath: string, branch: string, star
 		throw new Error(`Unsupported Git provider: ${gitInfo.domain}`);
 	}
 
-	// Replace placeholders in URL template
-	let url = provider.urlTemplate
-		.replace('{domain}', gitInfo.domain)
-		.replace('{owner}', gitInfo.owner)
-		.replace('{repo}', gitInfo.repo)
-		.replace('{branch}', branch)
-		.replace('{filePath}', filePath);
+    // Choose appropriate template depending on line numbers availability
+    const template = startLine !== null && endLine !== null
+        ? provider.urlTemplate
+        : (provider.urlTemplateNoLines ?? provider.urlTemplate);
 
-	// Handle line number placeholders
-	if (startLine === endLine) {
-		url = url
-			.replace('{startLine}', startLine.toString())
-			.replace('{endLine}', startLine.toString());
-	} else {
-		url = url
-			.replace('{startLine}', startLine.toString())
-			.replace('{endLine}', endLine.toString());
-	}
+    // Replace placeholders in URL template
+    let url = template
+        .replace('{domain}', gitInfo.domain)
+        .replace('{owner}', gitInfo.owner)
+        .replace('{repo}', gitInfo.repo)
+        .replace('{branch}', branch)
+        .replace('{filePath}', filePath);
+
+    // Handle line number placeholders only if provided
+    if (startLine !== null && endLine !== null) {
+        if (startLine === endLine) {
+            url = url
+                .replace('{startLine}', startLine.toString())
+                .replace('{endLine}', startLine.toString());
+        } else {
+            url = url
+                .replace('{startLine}', startLine.toString())
+                .replace('{endLine}', endLine.toString());
+        }
+    } else {
+        // Best-effort cleanup in case custom template still includes line placeholders
+        url = url
+            .replace('{startLine}', '')
+            .replace('{endLine}', '');
+    }
 
 	return url;
 }

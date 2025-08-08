@@ -1,3 +1,6 @@
+> [!NOTE]
+> This extension is entirely made by a combination of AI models.
+
 # Open in Browser
 
 A VS Code and Cursor extension that allows you to open files or selected code lines from your Git repository directly in the browser. Supports GitHub, GitLab, Bitbucket, Azure DevOps, and custom Git providers.
