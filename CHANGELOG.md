@@ -2,6 +2,14 @@
 
 All notable changes to the "Open in Browser" extension will be documented in this file.
 
+## [2.0.0] - 2025-08-08
+
+### Added
+- Documented support for running the extension in Cursor (README update)
+
+### Changed
+- Lowered minimum VS Code engine to `^1.83.0` for compatibility with Cursor-based builds
+
 ## [0.0.1] - 2025-07-30
 
 ### Added

@@ -5,12 +5,12 @@ import * as vscode from 'vscode';
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
 
-	test('Extension should be present', () => {
-		assert.ok(vscode.extensions.getExtension('vblinden.open-in-browser'));
-	});
+    test('Extension should be present', () => {
+        assert.ok(vscode.extensions.getExtension('vblinden.git-open-file-in-browser'));
+    });
 
-	test('Extension should activate', async () => {
-		const extension = vscode.extensions.getExtension('vblinden.open-in-browser');
+    test('Extension should activate', async () => {
+        const extension = vscode.extensions.getExtension('vblinden.git-open-file-in-browser');
 		if (extension) {
 			await extension.activate();
 			assert.ok(extension.isActive);

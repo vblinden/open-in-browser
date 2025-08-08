@@ -1,6 +1,6 @@
 # Open in Browser
 
-A VS Code extension that allows you to open files or selected code lines from your Git repository directly in the browser. Supports GitHub, GitLab, Bitbucket, Azure DevOps, and custom Git providers.
+A VS Code and Cursor extension that allows you to open files or selected code lines from your Git repository directly in the browser. Supports GitHub, GitLab, Bitbucket, Azure DevOps, and custom Git providers.
 
 ## Features
 
@@ -10,6 +10,7 @@ A VS Code extension that allows you to open files or selected code lines from yo
 - **Custom Provider Configuration**: Add support for private Git instances or custom providers
 - **Context Menu Integration**: Right-click context menu options for easy access
 - **Smart Line Detection**: Automatically detects selected lines or current cursor position
+- **Cursor Support**: Works seamlessly in the Cursor IDE with the same commands and menus
 
 ## Usage
 
@@ -22,6 +23,10 @@ A VS Code extension that allows you to open files or selected code lines from yo
 
 - `Git: Open In Browser` - Opens the current file
 - `Git: Open Selection In Browser` - Opens the selected lines
+
+### Cursor Compatibility
+
+This extension runs in Cursor out of the box. Use the same Command Palette entries and editor/explorer context menus as in VS Code—no extra setup is required.
 
 ## Supported Git Providers
 
@@ -106,7 +111,7 @@ For a private GitLab instance at `git.mycompany.com`:
 
 ## Requirements
 
-- VS Code 1.102.0 or higher
+- VS Code 1.83.0 or higher, or Cursor (based on a compatible VS Code version)
 - Git repository with remote origin configured
 - Active internet connection to access Git provider web interface
 
