@@ -2,7 +2,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -179,16 +178,29 @@ function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
 
 async function getCurrentBranch(workspacePath: string): Promise<string> {
 	try {
-		const { stdout } = await execAsync('git branch --show-current', { cwd: workspacePath });
-		const branch = stdout.trim();
+		let execResult;
+
+		// Try modern `git branch` command
+		execResult = await execAsync('git branch --show-current', { cwd: workspacePath });
+		const branch = execResult.stdout.trim();
 
 		if (branch) {
 			return branch;
 		}
 
-		// Fallback for detached HEAD or older git versions
-		const { stdout: fallback } = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd: workspacePath });
-		return fallback.trim() || getDefaultBranch();
+		// Fall back to `git rev-parse` if it can return a ref name
+		execResult = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd: workspacePath });
+		const branchFallback = execResult.stdout.trim();
+
+		if (branchFallback && branchFallback !== "HEAD") {
+			return branchFallback;
+		}
+
+		// Otherwise, take the commit hash as-is, if possible
+		execResult = await execAsync('git rev-parse --short HEAD', { cwd: workspacePath });
+		const commitHash = execResult.stdout.trim();
+
+		return commitHash || getDefaultBranch();
 	} catch (error) {
 		console.error('Error getting current branch:', error);
 		return getDefaultBranch();
