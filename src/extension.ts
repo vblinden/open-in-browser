@@ -176,7 +176,7 @@ function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
 	return null;
 }
 
-async function getCurrentBranch(workspacePath: string): Promise<string> {
+export async function getCurrentBranch(workspacePath: string): Promise<string> {
 	try {
 		let execResult;
 
