@@ -7,25 +7,24 @@ A VS Code and Cursor extension that allows you to open files or selected code li
 
 ## Features
 
-- **Open File in Browser**: Open the current file in your Git repository's web interface
-- **Open Selection in Browser**: Open specific lines of code in the browser (supports line ranges)
+- **Single Open Command**: One command opens either the file or the selected lines, depending on editor state
 - **Multiple Git Provider Support**: Works with GitHub, GitLab, Bitbucket, Azure DevOps
 - **Custom Provider Configuration**: Add support for private Git instances or custom providers
-- **Context Menu Integration**: Right-click context menu options for easy access
-- **Smart Line Detection**: Automatically detects selected lines or current cursor position
+- **Context Menu Integration**: Right-click in the editor or Explorer for quick access
+- **Smart Line Detection**: Automatically detects selected lines and opens the file when nothing is selected
 - **Cursor Support**: Works seamlessly in the Cursor IDE with the same commands and menus
 
 ## Usage
 
 ### Context Menu
 
-1. **For Files**: Right-click in the editor or on a file in the Explorer → "Git: Open In Browser"
-2. **For Selections**: Select text in the editor → Right-click → "Git: Open Selection In Browser"
+1. Right-click in the editor or on a file in the Explorer
+2. Choose "Git: Open In Browser"
+3. If text is selected, the browser opens to those lines; otherwise it opens the file
 
 ### Command Palette
 
-- `Git: Open In Browser` - Opens the current file
-- `Git: Open Selection In Browser` - Opens the selected lines
+- `Git: Open In Browser` - Opens the current file or the selected lines
 
 ### Cursor Compatibility
 
@@ -42,6 +41,7 @@ This extension runs in Cursor out of the box. Use the same Command Palette entri
 ### Custom Providers
 
 You can add support for private Git instances or other providers through VS Code settings.
+Custom providers can optionally define separate templates for file-only links and single-line selections.
 
 ## Configuration
 
@@ -56,12 +56,16 @@ Add these settings to your VS Code settings.json:
     {
       "name": "My Private GitLab",
       "domain": "gitlab.mycompany.com",
-      "urlTemplate": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}"
+      "urlTemplate": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}",
+      "urlTemplateNoLines": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}",
+      "urlTemplateSingleLine": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}"
     },
     {
       "name": "My Private GitHub Enterprise",
       "domain": "github.mycompany.com",
-      "urlTemplate": "https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}-L{endLine}"
+      "urlTemplate": "https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}-L{endLine}",
+      "urlTemplateNoLines": "https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}",
+      "urlTemplateSingleLine": "https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}"
     }
   ]
 }
@@ -69,7 +73,7 @@ Add these settings to your VS Code settings.json:
 
 ### URL Template Placeholders
 
-When configuring custom providers, you can use these placeholders in your `urlTemplate`:
+When configuring custom providers, you can use these placeholders in your templates:
 
 - `{domain}` - Git provider domain (e.g., github.com)
 - `{owner}` - Repository owner/organization
@@ -78,6 +82,12 @@ When configuring custom providers, you can use these placeholders in your `urlTe
 - `{filePath}` - Relative file path from repository root
 - `{startLine}` - Starting line number
 - `{endLine}` - Ending line number
+
+Custom provider template fields:
+
+- `urlTemplate` - Used for multi-line selections and as the base template
+- `urlTemplateNoLines` - Optional template used when nothing is selected
+- `urlTemplateSingleLine` - Optional template used when exactly one line is selected
 
 ### Configuration Options
 
@@ -92,8 +102,8 @@ When configuring custom providers, you can use these placeholders in your `urlTe
 3. File opens in your browser at the current branch
 
 ### Opening Specific Lines
-1. Select text in your editor (or just place cursor on a line)
-2. Right-click → "Git: Open Selection In Browser"
+1. Select text in your editor
+2. Right-click → "Git: Open In Browser"
 3. Browser opens showing the exact lines with highlighting
 
 ### Custom Provider Example
@@ -106,7 +116,9 @@ For a private GitLab instance at `git.mycompany.com`:
     {
       "name": "Company GitLab",
       "domain": "git.mycompany.com",
-      "urlTemplate": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}"
+      "urlTemplate": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}",
+      "urlTemplateNoLines": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}",
+      "urlTemplateSingleLine": "https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}"
     }
   ]
 }
@@ -161,7 +173,7 @@ The extension automatically handles GitLab group and subgroup structures, making
 ## Common Use Cases
 
 ### 1. Share Code Links
-- Select code lines → Right-click → "Git: Open Selection In Browser"
+- Select code lines → Right-click → "Git: Open In Browser"
 - Copy the URL from browser to share with colleagues
 
 ### 2. View File History

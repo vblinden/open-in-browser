@@ -2,7 +2,7 @@
   "name": "git-open-file-in-browser",
   "displayName": "Git: Open in Browser",
   "description": "Open files or selected lines from your Git repository directly in the browser. Supports GitHub, GitLab, Bitbucket, Azure DevOps, and custom Git providers.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "icon": "images/logo.png",
   "publisher": "vblinden",
   "license": "MIT",
@@ -44,11 +44,6 @@
         "command": "open-in-browser.openFile",
         "title": "Git: Open In Browser",
         "icon": "$(globe)"
-      },
-      {
-        "command": "open-in-browser.openSelection",
-        "title": "Git: Open Selection In Browser",
-        "icon": "$(globe)"
       }
     ],
     "menus": {
@@ -56,11 +51,6 @@
         {
           "command": "open-in-browser.openFile",
           "when": "editorTextFocus",
-          "group": "git"
-        },
-        {
-          "command": "open-in-browser.openSelection",
-          "when": "editorHasSelection",
           "group": "git"
         }
       ],
@@ -93,6 +83,14 @@
               "urlTemplate": {
                 "type": "string",
                 "description": "URL template with placeholders: {domain}, {owner}, {repo}, {branch}, {filePath}, {startLine}, {endLine}"
+              },
+              "urlTemplateNoLines": {
+                "type": "string",
+                "description": "Optional URL template used when no text is selected"
+              },
+              "urlTemplateSingleLine": {
+                "type": "string",
+                "description": "Optional URL template used when exactly one line is selected"
               }
             },
             "required": ["name", "domain", "urlTemplate"]
