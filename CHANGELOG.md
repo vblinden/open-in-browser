@@ -2,6 +2,26 @@
 
 All notable changes to the "Open in Browser" extension will be documented in this file.
 
+## [2.2.1] - 2026-03-09
+
+### Added
+- `{owner_basename}` placeholder for custom provider templates
+
+## [2.2.0] - 2026-03-09
+
+### Added
+- VS Code `Run Extension` debug configuration for local extension testing
+- Optional `urlTemplateNoLines` and `urlTemplateSingleLine` support for custom providers
+
+### Changed
+- Replaced the two editor context menu actions with a single `Git: Open In Browser` command
+- The command now opens the file when nothing is selected and opens selected lines when text is selected
+
+### Fixed
+- No-selection opens no longer append encoded line placeholders for custom providers
+- Single-line selections now generate a single-line anchor instead of a range anchor
+- Multi-line selections ending at column `0` no longer incorrectly include the following line
+
 ## [2.1.0] - 2025-08-08
 
 ### Changed

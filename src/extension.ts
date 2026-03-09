@@ -13,37 +13,46 @@ interface GitRemoteInfo {
 	repo: string;
 }
 
+interface GitTemplateValues extends GitRemoteInfo {
+	ownerBasename: string;
+}
+
 interface GitProvider {
-    name: string;
-    domain: string;
-    urlTemplate: string; // template including line numbers
-    urlTemplateNoLines?: string; // optional template without line numbers
+	name: string;
+	domain: string;
+	urlTemplate: string; // template including line numbers
+	urlTemplateNoLines?: string; // optional template without line numbers
+	urlTemplateSingleLine?: string; // optional template for a single selected line
 }
 
 const DEFAULT_PROVIDERS: GitProvider[] = [
 	{
 		name: 'GitHub',
 		domain: 'github.com',
-			urlTemplate: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}-L{endLine}',
-			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}'
+		urlTemplate: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}-L{endLine}',
+		urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}',
+		urlTemplateSingleLine: 'https://{domain}/{owner}/{repo}/blob/{branch}/{filePath}#L{startLine}'
 	},
 	{
 		name: 'GitLab',
 		domain: 'gitlab.com',
-			urlTemplate: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}',
-			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}'
+		urlTemplate: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}-{endLine}',
+		urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}',
+		urlTemplateSingleLine: 'https://{domain}/{owner}/{repo}/-/blob/{branch}/{filePath}#L{startLine}'
 	},
 	{
 		name: 'Bitbucket',
 		domain: 'bitbucket.org',
-			urlTemplate: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}#lines-{startLine}:{endLine}',
-			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}'
+		urlTemplate: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}#lines-{startLine}:{endLine}',
+		urlTemplateNoLines: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}',
+		urlTemplateSingleLine: 'https://{domain}/{owner}/{repo}/src/{branch}/{filePath}#lines-{startLine}'
 	},
 	{
 		name: 'Azure DevOps',
 		domain: 'dev.azure.com',
-			urlTemplate: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}&line={startLine}&lineEnd={endLine}&lineStartColumn=1&lineEndColumn=1',
-			urlTemplateNoLines: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}'
+		urlTemplate: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}&line={startLine}&lineEnd={endLine}&lineStartColumn=1&lineEndColumn=1',
+		urlTemplateNoLines: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}',
+		urlTemplateSingleLine: 'https://{domain}/{owner}/{repo}?path=/{filePath}&version=GB{branch}&line={startLine}&lineStartColumn=1'
 	}
 ];
 
@@ -58,16 +67,16 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register command to open file in browser
 	const openFileDisposable = vscode.commands.registerCommand('open-in-browser.openFile', async (uri?: vscode.Uri) => {
 		try {
-			await openInBrowser(uri, false);
+			await openInBrowser(uri);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to open in browser: ${error}`);
 		}
 	});
 
-	// Register command to open selection in browser
+	// Keep the legacy selection command as an alias for compatibility.
 	const openSelectionDisposable = vscode.commands.registerCommand('open-in-browser.openSelection', async (uri?: vscode.Uri) => {
 		try {
-			await openInBrowser(uri, true);
+			await openInBrowser(uri);
 		} catch (error) {
 			vscode.window.showErrorMessage(`Failed to open selection in browser: ${error}`);
 		}
@@ -76,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(openFileDisposable, openSelectionDisposable);
 }
 
-async function openInBrowser(uri?: vscode.Uri, useSelection: boolean = false): Promise<void> {
+async function openInBrowser(uri?: vscode.Uri): Promise<void> {
 	const activeEditor = vscode.window.activeTextEditor;
 
 	// Determine the file URI
@@ -104,18 +113,15 @@ async function openInBrowser(uri?: vscode.Uri, useSelection: boolean = false): P
 	// Get relative file path
 	const relativePath = path.relative(workspaceFolder.uri.fsPath, fileUri.fsPath);
 
-	// Determine line numbers only when using selection; otherwise omit
+	// Add line numbers only when the active editor has a selection for this file.
 	let startLine: number | null = null;
 	let endLine: number | null = null;
 
-	if (useSelection && activeEditor && activeEditor.document.uri.toString() === fileUri.toString()) {
-		const selection = activeEditor.selection;
-		startLine = selection.start.line + 1; // VS Code lines are 0-indexed
-		endLine = selection.end.line + 1;
-
-		// If no selection, use current line
-		if (selection.isEmpty) {
-			startLine = endLine = selection.active.line + 1;
+	if (activeEditor && activeEditor.document.uri.toString() === fileUri.toString()) {
+		const selectedRange = getSelectedLineRange(activeEditor);
+		if (selectedRange) {
+			startLine = selectedRange.startLine;
+			endLine = selectedRange.endLine;
 		}
 	}
 
@@ -142,7 +148,7 @@ async function getGitInfo(workspacePath: string): Promise<GitRemoteInfo | null> 
 	}
 }
 
-function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
+export function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
 	// Handle various Git URL formats
 	const patterns = [
 		// HTTPS: https://github.com/owner/repo.git or https://gitlab.com/group/subgroup/repo.git
@@ -174,6 +180,11 @@ function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
 	}
 
 	return null;
+}
+
+export function getOwnerBasename(owner: string): string {
+	const segments = owner.split('/').filter(Boolean);
+	return segments.at(-1) ?? owner;
 }
 
 export async function getCurrentBranch(workspacePath: string): Promise<string> {
@@ -212,12 +223,12 @@ function getDefaultBranch(): string {
 	return config.get<string>('defaultBranch', 'main');
 }
 
-function buildUrl(
-    gitInfo: GitRemoteInfo,
-    filePath: string,
-    branch: string,
-    startLine: number | null,
-    endLine: number | null
+export function buildUrl(
+	gitInfo: GitRemoteInfo,
+	filePath: string,
+	branch: string,
+	startLine: number | null,
+	endLine: number | null
 ): string {
 	const providers = getAllProviders();
 
@@ -228,36 +239,87 @@ function buildUrl(
 		throw new Error(`Unsupported Git provider: ${gitInfo.domain}`);
 	}
 
-    // Choose appropriate template depending on line numbers availability
-    const template = startLine !== null && endLine !== null
-        ? provider.urlTemplate
-        : (provider.urlTemplateNoLines ?? provider.urlTemplate);
+	const template = getUrlTemplate(provider, startLine, endLine);
+	const templateValues: GitTemplateValues = {
+		...gitInfo,
+		ownerBasename: getOwnerBasename(gitInfo.owner)
+	};
 
-    // Replace placeholders in URL template
-    let url = template
-        .replace('{domain}', gitInfo.domain)
-        .replace('{owner}', gitInfo.owner)
-        .replace('{repo}', gitInfo.repo)
-        .replace('{branch}', branch)
-        .replace('{filePath}', filePath);
+	let url = template
+		.replace('{domain}', templateValues.domain)
+		.replace('{owner}', templateValues.owner)
+		.replace('{owner_basename}', templateValues.ownerBasename)
+		.replace('{repo}', templateValues.repo)
+		.replace('{branch}', branch)
+		.replace('{filePath}', filePath);
 
-    // Handle line number placeholders only if provided
-    if (startLine !== null && endLine !== null) {
-        if (startLine === endLine) {
-            url = url
-                .replace('{startLine}', startLine.toString())
-                .replace('{endLine}', startLine.toString());
-        } else {
-            url = url
-                .replace('{startLine}', startLine.toString())
-                .replace('{endLine}', endLine.toString());
-        }
-    } else {
-        // Best-effort cleanup in case custom template still includes line placeholders
-        url = url
-            .replace('{startLine}', '')
-            .replace('{endLine}', '');
-    }
+	if (startLine !== null) {
+		url = url.replace('{startLine}', startLine.toString());
+	}
+
+	if (endLine !== null) {
+		url = url.replace('{endLine}', endLine.toString());
+	}
+
+	return cleanupUrl(url, startLine, endLine);
+}
+
+function getSelectedLineRange(editor: vscode.TextEditor): { startLine: number; endLine: number } | null {
+	const selection = editor.selection;
+	if (selection.isEmpty || editor.document.getText(selection).length === 0) {
+		return null;
+	}
+
+	const startLine = selection.start.line + 1;
+	const endLine = selection.end.character === 0 && selection.end.line > selection.start.line
+		? selection.end.line
+		: selection.end.line + 1;
+
+	return {
+		startLine,
+		endLine
+	};
+}
+
+function getUrlTemplate(
+	provider: GitProvider,
+	startLine: number | null,
+	endLine: number | null
+): string {
+	if (startLine === null || endLine === null) {
+		return provider.urlTemplateNoLines ?? provider.urlTemplate;
+	}
+
+	if (startLine === endLine) {
+		return provider.urlTemplateSingleLine ?? provider.urlTemplate;
+	}
+
+	return provider.urlTemplate;
+}
+
+function cleanupUrl(url: string, startLine: number | null, endLine: number | null): string {
+	if (startLine === null || endLine === null) {
+		return url
+			.replace(/#L\{startLine\}-L\{endLine\}$/, '')
+			.replace(/#L\{startLine\}-\{endLine\}$/, '')
+			.replace(/#lines-\{startLine\}:\{endLine\}$/, '')
+			.replace(/[?&]line=\{startLine\}(&lineEnd=\{endLine\})?&lineStartColumn=1(&lineEndColumn=1)?/, '')
+			.replace(/[?&]lineEnd=\{endLine\}/, '')
+			.replace(/[?&]lineStartColumn=1/, '')
+			.replace(/[?&]lineEndColumn=1/, '')
+			.replace(/[?&]$/, '');
+	}
+
+	if (startLine === endLine) {
+		return url
+			.replace(`#L${startLine}-L${endLine}`, `#L${startLine}`)
+			.replace(`#L${startLine}-${endLine}`, `#L${startLine}`)
+			.replace(`#lines-${startLine}:${endLine}`, `#lines-${startLine}`)
+			.replace(
+				`line=${startLine}&lineEnd=${endLine}&lineStartColumn=1&lineEndColumn=1`,
+				`line=${startLine}&lineStartColumn=1`
+			);
+	}
 
 	return url;
 }
