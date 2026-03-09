@@ -1,37 +1,9 @@
 import * as assert from 'assert';
+import * as vscode from 'vscode';
+import { buildUrl, getOwnerBasename, parseGitRemoteUrl } from '../extension';
 
 // Test Git URL parsing functionality
 suite('Git URL Parsing Tests', () => {
-
-	// Mock of the parseGitRemoteUrl function for testing
-	function parseGitRemoteUrl(remoteUrl: string): { domain: string; owner: string; repo: string } | null {
-		const patterns = [
-			// HTTPS: https://github.com/owner/repo.git or https://gitlab.com/group/subgroup/repo.git
-			/^https?:\/\/([^\/]+)\/(.+?)\/([^\/]+?)(?:\.git)?$/,
-			// SSH: git@github.com:owner/repo.git or git@gitlab.com:group/subgroup/repo.git
-			/^git@([^:]+):(.+?)\/([^\/]+?)(?:\.git)?$/,
-			// SSH with protocol: ssh://git@github.com/owner/repo.git or ssh://git@gitlab.com/group/subgroup/repo.git
-			/^ssh:\/\/git@([^\/]+)\/(.+?)\/([^\/]+?)(?:\.git)?$/
-		];
-
-		for (const pattern of patterns) {
-			const match = remoteUrl.match(pattern);
-			if (match) {
-				const domain = match[1];
-				const fullPath = match[2];
-				const repo = match[3];
-
-				return {
-					domain: domain,
-					owner: fullPath,
-					repo: repo
-				};
-			}
-		}
-
-		return null;
-	}
-
 	test('Parse HTTPS GitHub URL', () => {
 		const result = parseGitRemoteUrl('https://github.com/microsoft/vscode.git');
 		assert.ok(result);
@@ -99,5 +71,68 @@ suite('Git URL Parsing Tests', () => {
 	test('Invalid URL returns null', () => {
 		const result = parseGitRemoteUrl('not-a-valid-url');
 		assert.strictEqual(result, null);
+	});
+
+	test('Owner basename returns owner when there is no slash', () => {
+		assert.strictEqual(getOwnerBasename('dev'), 'dev');
+	});
+
+	test('Owner basename uses the last non-empty segment', () => {
+		assert.strictEqual(getOwnerBasename('scm/dev/'), 'dev');
+		assert.strictEqual(getOwnerBasename('/nested/team/platform'), 'platform');
+	});
+
+	test('Custom provider templates can use owner_basename', () => {
+		const inspectConfiguration = Object.getOwnPropertyDescriptor(vscode.workspace, 'getConfiguration');
+		const originalGetConfiguration = vscode.workspace.getConfiguration;
+
+		Object.defineProperty(vscode.workspace, 'getConfiguration', {
+			configurable: true,
+			value: () => ({
+				get: <T>(key: string, defaultValue?: T): T => {
+					if (key === 'customProviders') {
+						return [
+							{
+								name: 'Bitbucket Server',
+								domain: 'bitbucket.company.com',
+								urlTemplate: 'https://{domain}/projects/{owner_basename}/repos/{repo}/browse/{filePath}?at={branch}#L{startLine}-{endLine}',
+								urlTemplateNoLines: 'https://{domain}/projects/{owner_basename}/repos/{repo}/browse/{filePath}?at={branch}',
+								urlTemplateSingleLine: 'https://{domain}/projects/{owner_basename}/repos/{repo}/browse/{filePath}?at={branch}#L{startLine}'
+							}
+						] as T;
+					}
+
+					return defaultValue as T;
+				}
+			})
+		});
+
+		try {
+			const url = buildUrl(
+				{
+					domain: 'bitbucket.company.com',
+					owner: 'scm/dev',
+					repo: 'example-repo'
+				},
+				'path/script.php',
+				'master',
+				196,
+				235
+			);
+
+			assert.strictEqual(
+				url,
+				'https://bitbucket.company.com/projects/dev/repos/example-repo/browse/path/script.php?at=master#L196-235'
+			);
+		} finally {
+			if (inspectConfiguration) {
+				Object.defineProperty(vscode.workspace, 'getConfiguration', inspectConfiguration);
+			} else {
+				Object.defineProperty(vscode.workspace, 'getConfiguration', {
+					configurable: true,
+					value: originalGetConfiguration
+				});
+			}
+		}
 	});
 });

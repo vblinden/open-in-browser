@@ -14,6 +14,10 @@ interface GitRemoteInfo {
 	repo: string;
 }
 
+interface GitTemplateValues extends GitRemoteInfo {
+	ownerBasename: string;
+}
+
 interface GitProvider {
 	name: string;
 	domain: string;
@@ -145,7 +149,7 @@ async function getGitInfo(workspacePath: string): Promise<GitRemoteInfo | null> 
 	}
 }
 
-function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
+export function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
 	// Handle various Git URL formats
 	const patterns = [
 		// HTTPS: https://github.com/owner/repo.git or https://gitlab.com/group/subgroup/repo.git
@@ -179,6 +183,11 @@ function parseGitRemoteUrl(remoteUrl: string): GitRemoteInfo | null {
 	return null;
 }
 
+export function getOwnerBasename(owner: string): string {
+	const segments = owner.split('/').filter(Boolean);
+	return segments.at(-1) ?? owner;
+}
+
 async function getCurrentBranch(workspacePath: string): Promise<string> {
 	try {
 		const { stdout } = await execAsync('git branch --show-current', { cwd: workspacePath });
@@ -202,7 +211,7 @@ function getDefaultBranch(): string {
 	return config.get<string>('defaultBranch', 'main');
 }
 
-function buildUrl(
+export function buildUrl(
 	gitInfo: GitRemoteInfo,
 	filePath: string,
 	branch: string,
@@ -219,11 +228,16 @@ function buildUrl(
 	}
 
 	const template = getUrlTemplate(provider, startLine, endLine);
+	const templateValues: GitTemplateValues = {
+		...gitInfo,
+		ownerBasename: getOwnerBasename(gitInfo.owner)
+	};
 
 	let url = template
-		.replace('{domain}', gitInfo.domain)
-		.replace('{owner}', gitInfo.owner)
-		.replace('{repo}', gitInfo.repo)
+		.replace('{domain}', templateValues.domain)
+		.replace('{owner}', templateValues.owner)
+		.replace('{owner_basename}', templateValues.ownerBasename)
+		.replace('{repo}', templateValues.repo)
 		.replace('{branch}', branch)
 		.replace('{filePath}', filePath);
 

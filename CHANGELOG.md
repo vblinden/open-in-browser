@@ -2,6 +2,11 @@
 
 All notable changes to the "Open in Browser" extension will be documented in this file.
 
+## [2.2.1] - 2026-03-09
+
+### Added
+- `{owner_basename}` placeholder for custom provider templates
+
 ## [2.2.0] - 2026-03-09
 
 ### Added

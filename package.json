@@ -2,7 +2,7 @@
   "name": "git-open-file-in-browser",
   "displayName": "Git: Open in Browser",
   "description": "Open files or selected lines from your Git repository directly in the browser. Supports GitHub, GitLab, Bitbucket, Azure DevOps, and custom Git providers.",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "icon": "images/logo.png",
   "publisher": "vblinden",
   "license": "MIT",
@@ -82,7 +82,7 @@
               },
               "urlTemplate": {
                 "type": "string",
-                "description": "URL template with placeholders: {domain}, {owner}, {repo}, {branch}, {filePath}, {startLine}, {endLine}"
+                "description": "URL template with placeholders: {domain}, {owner}, {owner_basename}, {repo}, {branch}, {filePath}, {startLine}, {endLine}"
               },
               "urlTemplateNoLines": {
                 "type": "string",

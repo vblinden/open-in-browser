@@ -77,6 +77,7 @@ When configuring custom providers, you can use these placeholders in your templa
 
 - `{domain}` - Git provider domain (e.g., github.com)
 - `{owner}` - Repository owner/organization
+- `{owner_basename}` - Last non-empty segment of `{owner}` split on `/`
 - `{repo}` - Repository name
 - `{branch}` - Current git branch
 - `{filePath}` - Relative file path from repository root
@@ -216,7 +217,7 @@ The extension automatically handles GitLab group and subgroup structures, making
 {
   "name": "Bitbucket Server",
   "domain": "bitbucket.company.com",
-  "urlTemplate": "https://{domain}/projects/{owner}/repos/{repo}/browse/{filePath}?at={branch}#L{startLine}-{endLine}"
+  "urlTemplate": "https://{domain}/projects/{owner_basename}/repos/{repo}/browse/{filePath}?at={branch}#L{startLine}-{endLine}"
 }
 ```
 
