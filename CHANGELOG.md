@@ -2,6 +2,11 @@
 
 All notable changes to the "Open in Browser" extension will be documented in this file.
 
+## [2.2.2] - 2026-03-09
+
+### Fixed
+- Use the current short commit hash when opening links from a detached `HEAD` instead of falling back to the configured default branch
+
 ## [2.2.1] - 2026-03-09
 
 ### Added
