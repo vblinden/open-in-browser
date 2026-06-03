@@ -98,6 +98,38 @@ async function openInBrowser(uri?: vscode.Uri): Promise<void> {
 		throw new Error('No file selected or active');
 	}
 
+	// Handle git:// URIs from Blame view
+	const blameInfo = parseGitBlameUri(fileUri);
+	if (blameInfo) {
+		const realFileUri = vscode.Uri.file(blameInfo.fsPath);
+		const workspaceFolder = vscode.workspace.getWorkspaceFolder(realFileUri);
+		if (!workspaceFolder) {
+			throw new Error('File is not in a workspace');
+		}
+
+		const gitInfo = await getGitInfo(workspaceFolder.uri.fsPath);
+		if (!gitInfo) {
+			throw new Error('Not a git repository or unable to determine remote URL');
+		}
+
+		const relativePath = path.relative(workspaceFolder.uri.fsPath, blameInfo.fsPath);
+
+		let startLine: number | null = null;
+		let endLine: number | null = null;
+		if (activeEditor && activeEditor.document.uri.toString() === fileUri.toString()) {
+			const selectedRange = getSelectedLineRange(activeEditor);
+			if (selectedRange) {
+				startLine = selectedRange.startLine;
+				endLine = selectedRange.endLine;
+			}
+		}
+
+		const url = buildUrl(gitInfo, relativePath, blameInfo.commitHash, startLine, endLine);
+		await vscode.env.openExternal(vscode.Uri.parse(url));
+		vscode.window.showInformationMessage(`Opened in browser: ${url}`);
+		return;
+	}
+
 	// Get workspace folder
 	const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
 	if (!workspaceFolder) {
@@ -144,6 +176,31 @@ async function getGitInfo(workspacePath: string): Promise<GitRemoteInfo | null> 
 		return parseGitRemoteUrl(remoteUrl);
 	} catch (error) {
 		console.error('Error getting git remote URL:', error);
+		return null;
+	}
+}
+
+interface GitBlameUriInfo {
+	commitHash: string;
+	fsPath: string;
+}
+
+export function parseGitBlameUri(uri: vscode.Uri): GitBlameUriInfo | null {
+	if (uri.scheme !== 'git') {
+		return null;
+	}
+
+	try {
+		const query = JSON.parse(uri.query) as { path?: string; ref?: string };
+		const commitHash = query.ref;
+		const fsPath = query.path;
+
+		if (!commitHash || !fsPath) {
+			return null;
+		}
+
+		return { commitHash, fsPath };
+	} catch {
 		return null;
 	}
 }
