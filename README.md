@@ -13,6 +13,7 @@ A VS Code and Cursor extension that allows you to open files or selected code li
 - **Context Menu Integration**: Right-click in the editor or Explorer for quick access
 - **Smart Line Detection**: Automatically detects selected lines and opens the file when nothing is selected
 - **Detached HEAD Support**: Opens the current commit when you are browsing a specific revision instead of forcing the default branch
+- **Git Blame Support**: Opens the blamed commit when used from VS Code's Git Blame view
 - **Cursor Support**: Works seamlessly in the Cursor IDE with the same commands and menus
 
 ## Usage
@@ -238,6 +239,7 @@ The extension automatically handles GitLab group and subgroup structures, making
 - **Cause**: The extension uses your current Git branch
 - **Solution**: Switch to the correct branch with `git checkout <branch-name>`
 - **Detached HEAD**: If you checked out a specific commit, the extension uses that short commit hash in the generated URL
+- **Git Blame view**: When the active editor is a Git Blame document, the extension uses the blamed commit hash in the generated URL
 - **Fallback**: If branch detection fully fails, it uses the configured default branch
 - **Configure**: Change default branch in settings: `"openInBrowser.defaultBranch": "develop"`
 

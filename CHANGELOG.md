@@ -2,6 +2,11 @@
 
 All notable changes to the "Open in Browser" extension will be documented in this file.
 
+## [2.2.3] - 2026-06-05
+
+### Added
+- Support for opening files from VS Code's Git Blame view by resolving `git`-scheme URIs and pinning the URL to the blamed commit
+
 ## [2.2.2] - 2026-03-09
 
 ### Fixed
