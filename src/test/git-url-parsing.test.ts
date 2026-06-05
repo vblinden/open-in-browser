@@ -1,8 +1,44 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { buildUrl, getOwnerBasename, parseGitRemoteUrl } from '../extension';
+import { buildUrl, getOwnerBasename, parseGitBlameUri, parseGitRemoteUrl } from '../extension';
 
-// Test Git URL parsing functionality
+suite('Git Blame URI Tests', () => {
+	test('Returns commit hash and fsPath for a valid git:// URI', () => {
+		const query = JSON.stringify({ path: '/home/user/project/src/index.ts', ref: 'abc1234def5678' });
+		const uri = vscode.Uri.from({ scheme: 'git', path: '/home/user/project/src/index.ts.git', query });
+		const result = parseGitBlameUri(uri);
+		assert.ok(result);
+		assert.strictEqual(result.commitHash, 'abc1234def5678');
+		assert.strictEqual(result.fsPath, '/home/user/project/src/index.ts');
+	});
+
+	test('Returns null for a regular file:// URI', () => {
+		const uri = vscode.Uri.file('/home/user/project/src/index.ts');
+		const result = parseGitBlameUri(uri);
+		assert.strictEqual(result, null);
+	});
+
+	test('Returns null when ref is empty (uncommitted working-tree entry)', () => {
+		const query = JSON.stringify({ path: '/home/user/project/src/index.ts', ref: '' });
+		const uri = vscode.Uri.from({ scheme: 'git', path: '/home/user/project/src/index.ts.git', query });
+		const result = parseGitBlameUri(uri);
+		assert.strictEqual(result, null);
+	});
+
+	test('Returns null when ref is missing from query', () => {
+		const query = JSON.stringify({ path: '/home/user/project/src/index.ts' });
+		const uri = vscode.Uri.from({ scheme: 'git', path: '/home/user/project/src/index.ts.git', query });
+		const result = parseGitBlameUri(uri);
+		assert.strictEqual(result, null);
+	});
+
+	test('Returns null when query is not valid JSON', () => {
+		const uri = vscode.Uri.from({ scheme: 'git', path: '/some/file.ts', query: 'not-json' });
+		const result = parseGitBlameUri(uri);
+		assert.strictEqual(result, null);
+	});
+});
+
 suite('Git URL Parsing Tests', () => {
 	test('Parse HTTPS GitHub URL', () => {
 		const result = parseGitRemoteUrl('https://github.com/microsoft/vscode.git');
